@@ -83,7 +83,6 @@ streamlit run app.py
 
 ```text
 ai-personal-assistant/
-├── screenshots/
 ├── main.py
 ├── app.py
 ├── agents.py
