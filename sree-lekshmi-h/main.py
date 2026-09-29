@@ -7,4 +7,6 @@ while True:
     if user_input.lower() in ["exit", "quit"]:
         break
 
-    handle_query(user_input)
+    answer = handle_query(user_input)
+
+    print("\nAssistant:", answer)

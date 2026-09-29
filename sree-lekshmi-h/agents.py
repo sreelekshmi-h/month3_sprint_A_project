@@ -248,38 +248,8 @@ Never handoff more than once.
             "content": user_query
         }
     ]
+   
     try:
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=messages,
-            stream=True
-        )
-
-        print("\nAssistant: ", end="", flush=True)
-
-        full_response = ""
-
-        for chunk in response:
-            content = chunk.choices[0].delta.content
-
-            if content:
-                print(content, end="", flush=True)
-                full_response += content
-
-        print()
-
-        return full_response
-
-    except RateLimitError:
-        print("\n[ERROR]")
-        print("Groq API rate limit reached.")
-        return "Sorry, the AI service has reached its usage limit. Please try again later."
-
-    except Exception as e:
-        print("\n[ERROR]")
-        print(f"Error details: {e}")
-        return "Sorry, I couldn't process your request."
-"""    try:
         response = client.chat.completions.create(
             model=MODEL,
             messages=messages
@@ -295,14 +265,8 @@ Never handoff more than once.
     except Exception as e:
         print("\n[ERROR]")
         print(f"Error details: {e}")
-    return "Sorry, I couldn't process your request."""
-"""   response = client.chat.completions.create(
-        model=MODEL,
-        messages=messages
-    )
+        return "Sorry, I couldn't process your request."
 
-    return response.choices[0].message.content
-"""
 def route_query(user_query):
     query = user_query.lower().strip()
 
