@@ -86,7 +86,17 @@ web_search_tool = {
 # CALCULATION SPECIALIST
 # -----------------------------
 
-def calculation_specialist(user_query):
+def calculation_specialist(user_query, conversation_history):
+
+    history = [
+        {
+            "role": message["role"],
+            "content": message["content"]
+        }
+        for message in conversation_history
+        if message.get("content") and not message.get("error")
+    ]
+
     messages = [
         {
             "role": "system",
@@ -95,18 +105,17 @@ You are the Calculation Specialist.
 
 You handle calculations and unit conversions.
 
-Use the provided tool results to answer the user's question.
+Use the provided tools to perform calculations or conversions.
 
-Do not call any tools after receiving a tool result.
-Return only the final answer.
+After receiving a tool result, give only the final answer.
+Do not call another tool after receiving a tool result.
+Do not output Python code or internal instructions.
 """
-        },
-        {
-            "role": "user",
-            "content": user_query
         }
     ]
-    
+
+    messages.extend(history)
+
     response = client.chat.completions.create(
         model=MODEL,
         messages=messages,
@@ -121,7 +130,6 @@ Return only the final answer.
     if not message.tool_calls:
         return message.content
 
-    # Execute the requested tool
     tool_call = message.tool_calls[0]
 
     if tool_call.function.name == "calculator":
@@ -130,6 +138,7 @@ Return only the final answer.
 
     elif tool_call.function.name == "unit_converter":
         args = json.loads(tool_call.function.arguments)
+
         result = unit_converter(
             args["value"],
             args["from_unit"],
@@ -139,7 +148,6 @@ Return only the final answer.
     else:
         return "Unable to process the calculation."
 
-    # Give the tool result to the model
     messages.append(message)
 
     messages.append({
@@ -148,8 +156,6 @@ Return only the final answer.
         "content": result
     })
 
-    # Final response — NO tools here
-    # Final response — NO tools here
     try:
         final_response = client.chat.completions.create(
             model=MODEL,
@@ -166,12 +172,19 @@ Return only the final answer.
 
         return "Sorry, I couldn't complete that calculation."
 
-
-
 # -----------------------------
 # RESEARCH SPECIALIST
 # -----------------------------
-def research_specialist(user_query):
+def research_specialist(user_query, conversation_history):
+
+    history = [
+        {
+            "role": message["role"],
+            "content": message["content"]
+        }
+        for message in conversation_history
+        if message.get("content") and not message.get("error")
+    ]
 
     messages = [
         {
@@ -182,19 +195,23 @@ You are the Research Specialist.
 You handle factual and current information requests.
 
 Use browser search when the user needs:
+
 - current information
 - recent information
 - factual information that should be verified
 
+Use the conversation history when relevant.
+
 Give a clear and concise final answer.
+
 Do not mention internal agent routing.
+Do not output Python code or internal instructions.
 """
-        },
-        {
-            "role": "user",
-            "content": user_query
         }
     ]
+
+    messages.extend(history)
+
     try:
         response = client.chat.completions.create(
             model=MODEL,
@@ -208,21 +225,32 @@ Do not mention internal agent routing.
         )
 
         return response.choices[0].message.content
+
     except RateLimitError:
         print("\n[ERROR]")
         print("Groq API rate limit reached.")
+
         return "Sorry, the AI service has reached its usage limit. Please try again later."
 
     except Exception as e:
         print("\n[ERROR]")
         print(f"Error details: {e}")
-        return "Sorry, I couldn't complete the research request."
 
+        return "Sorry, I couldn't complete the research request."
 # -----------------------------
 # GENERAL AGENT
 # -----------------------------
 
-def general_agent(user_query):
+def general_agent(user_query, conversation_history):
+
+    history = [
+        {
+            "role": message["role"],
+            "content": message["content"]
+        }
+        for message in conversation_history
+        if message.get("content") and not message.get("error")
+    ]
 
     messages = [
         {
@@ -230,25 +258,23 @@ def general_agent(user_query):
             "content": """
 You are the General Agent of an AI Personal Assistant.
 
-You are the only agent directly accessible to the user.
+You answer normal conversational questions.
 
-Decide what to do with the user's request.
+Calculation, unit conversion, and research requests are
+already routed by the application.
 
-If it requires:
-- calculation or unit conversion → handoff to Calculation Specialist
-- factual/current research → handoff to Research Specialist
+Use the conversation history to understand previous messages.
 
-For normal conversational questions, answer directly.
+Do not mention internal agent routing.
+Do not output Python code or internal instructions.
 
-Never handoff more than once.
+Answer clearly and concisely.
 """
-        },
-        {
-            "role": "user",
-            "content": user_query
         }
     ]
-   
+
+    messages.extend(history)
+
     try:
         response = client.chat.completions.create(
             model=MODEL,
@@ -260,11 +286,13 @@ Never handoff more than once.
     except RateLimitError:
         print("\n[ERROR]")
         print("Groq API rate limit reached.")
+
         return "Sorry, the AI service has reached its usage limit. Please try again later."
 
     except Exception as e:
         print("\n[ERROR]")
         print(f"Error details: {e}")
+
         return "Sorry, I couldn't process your request."
 
 def route_query(user_query):
@@ -324,7 +352,8 @@ def route_query(user_query):
 # MAIN HANDOFF FUNCTION
 # -----------------------------
 
-def handle_query(user_query):
+def handle_query(user_query, conversation_history):
+
     decision = route_query(user_query)
 
     if decision == "CALCULATION":
@@ -335,7 +364,10 @@ def handle_query(user_query):
         print(f"Context: {user_query}")
         print("[/HANDOFF]\n")
 
-        return calculation_specialist(user_query)
+        return calculation_specialist(
+            user_query,
+            conversation_history
+        )
 
     elif decision == "RESEARCH":
         print("\n[HANDOFF]")
@@ -345,8 +377,13 @@ def handle_query(user_query):
         print(f"Context: {user_query}")
         print("[/HANDOFF]\n")
 
-        return research_specialist(user_query)
+        return research_specialist(
+            user_query,
+            conversation_history
+        )
 
     else:
-        return general_agent(user_query)
-
+        return general_agent(
+            user_query,
+            conversation_history
+        )
