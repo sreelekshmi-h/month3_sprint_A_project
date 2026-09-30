@@ -14,6 +14,7 @@ An agentic AI assistant that routes user queries to the appropriate specialist a
 
 <img width="617" height="442" alt="image" src="https://github.com/user-attachments/assets/fe201c96-0301-4765-babc-fca4e3be90be" />
 
+<img width="553" height="415" alt="image" src="https://github.com/user-attachments/assets/304c4638-2672-4615-8337-e632f399a972" />
 
 ## Live Demo
 
